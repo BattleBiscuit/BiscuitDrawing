@@ -1,0 +1,165 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <link rel="stylesheet" href="https://bootswatch.com/4/sketchy/bootstrap.css" crossorigin="anonymous">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        #messages {margin: 0; padding: 0; width: 100%;}
+        #messages li { padding: 5px 10px; }
+        #messages div:nth-child(odd) { background: #eee; width: 100%;}
+        #form { position: fixed;  bottom: 0;}
+        #messageBox {height: 600px; width: 500px; overflow: auto; margin: 0;}
+        .jumbotron {margin: 0;}
+    </style>
+  </head>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5@0.10.2/lib/p5.js"></script>
+  <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>  
+  <script>
+    var socket = io();
+
+    $(function () {
+        $('form').submit(function(e){
+            e.preventDefault(); // prevents page reloading
+            if($('#m').val() != "") {
+                socket.emit('chat message', $('#m').val());
+            }
+            $('#m').val('');
+            return false;
+        });
+        socket.on('chat message', function(msg){
+            $('#messages').append($('<div>').text(msg));
+            $('#messageBox').scrollTop($('#messageBox')[0].scrollHeight);
+        });
+        socket.on('draw line', function (newLine) {
+            stroke(newLine[4]);
+            strokeWeight(newLine[5]);
+            line(newLine[0], newLine[1], newLine[2], newLine[3]);
+        });
+        socket.on('delete pic', function() {
+            clear();
+            background(230);
+        });
+
+    });
+
+    function setup() {
+        let canvas = createCanvas(700, 600);
+        background(230);
+        canvas.parent('drawingBoard');
+    }
+    function draw() {
+
+    }
+    function mouseDragged() {
+        let color;
+        let weight;
+        Array.from(document.getElementsByName('color')).forEach(element => {
+            if(element.checked) {
+                color = element.value;
+            }
+        });
+        Array.from(document.getElementsByName('weight')).forEach(element => {
+            if(element.checked) {
+                weight = element.value;
+            }
+        });
+        let newline = [mouseX, mouseY, pmouseX, pmouseY, color, weight];
+        socket.emit('draw line', newline);
+    }
+    function keyPressed() {
+        if(keyCode === 46) {
+            socket.emit('delete pic');
+        }
+    }
+  </script>
+
+
+  <body>
+    <div id="login">
+    </div>
+    <div class="row mx-4" id="game">
+        <div class="col-7 jumbotron">
+            <div class="row">
+                <div class="col" id="drawingBoard">
+                </div>
+                <div class="col">
+                    <form action="">
+                        <div class="form-group">
+                            <input type="radio" name="color" value="black" id="colorBlack" checked>
+                            <label for="#colorBlack">Schwarz</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="radio" name="color" value="green" id="colorGreen">
+                            <label for="#colorGreen">Grün</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="radio" name="color" value="yellow" id="colorYellow">
+                            <label for="#colorYellow">Geld</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="radio" name="color" value="red" id="colorRed">
+                            <label for="#colorRed">Rot</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="radio" name="color" value="blue" id="colorBlue">
+                            <label for="#colorBlue">Blau</label>
+                        </div>
+                    </form>                
+                </div>
+
+                <div class="col">
+                    <form action="">
+                        <div class="form-group">
+                            <input type="radio" name="weight" value="1" id="weight1" checked>
+                            <label for="#weight1">Dünn</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="radio" name="weight" value="2" id="weight2">
+                            <label for="#weight2">Normal</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="radio" name="weight" value="4" id="weight4">
+                            <label for="#weight4">Dick</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="radio" name="weight" value="8" id="weight8">
+                            <label for="#weight8">Fett</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="radio" name="weight" value="16" id="weight16">
+                            <label for="#weight16">Dei Mudda</label>
+                        </div>
+                    </form>                
+                </div>
+            </div>        
+        </div>
+        <div class="col">
+            <div class="jumbotron" id="chatBox">
+                <div class="row" id="messageBox">
+                    <div id="messages"></div>
+                </div>
+                <div class="row align-items-end">
+                    <form action="">
+                        <div class="form-row" id="chatInput">
+                            <div class="form-group">
+                                <input id="m" autocomplete="off" class="form-control"/>
+                            </div>
+                            <div class="form-group">
+                                <button class="btn btn-primary form-check">Send</button>
+                            </div>
+                        </div>
+                    </form>
+                </div> 
+            </div>
+        </div>
+    <div>
+        
+    </div>
+    
+  </body>
+</html>
