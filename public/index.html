@@ -10,7 +10,6 @@
         #messages div:nth-child(odd) { background: #eee; width: 100%;}
         #form { position: fixed;  bottom: 0;}
         #messageBox {height: 600px; width: 500px; overflow: auto; margin: 0;}
-        .jumbotron {margin: 0;}
     </style>
   </head>
 
@@ -44,7 +43,9 @@
             clear();
             background(230);
         });
-
+        socket.on('get word', function(word) {
+            $('#word').text(word);
+        });
     });
 
     function setup() {
@@ -82,13 +83,15 @@
   <body>
     <div id="login">
     </div>
+        <h1 class="text-center">Biscuit Drawing</h1>    
     <div class="row mx-4" id="game">
         <div class="col-7 jumbotron">
+                <h3 id="word" class="text-center"></h3> 
             <div class="row">
                 <div class="col" id="drawingBoard">
                 </div>
                 <div class="col">
-                    <form action="">
+                    <form action="" class="drawerControl">
                         <div class="form-group">
                             <input type="radio" name="color" value="black" id="colorBlack" checked>
                             <label for="#colorBlack">Schwarz</label>
@@ -113,7 +116,7 @@
                 </div>
 
                 <div class="col">
-                    <form action="">
+                    <form action="" class="drawerControl">
                         <div class="form-group">
                             <input type="radio" name="weight" value="1" id="weight1" checked>
                             <label for="#weight1">Dünn</label>
