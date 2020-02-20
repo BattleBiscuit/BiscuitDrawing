@@ -1,168 +1,338 @@
-<!doctype html>
-<html>
-  <head>
-    <title>Socket.IO chat</title>
-    <link rel="stylesheet" href="https://bootswatch.com/4/sketchy/bootstrap.css" crossorigin="anonymous">
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!-->
+<html class="no-js">
+<!--<![endif]-->
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Biscuit Drawing</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <link rel="stylesheet" href="https://bootswatch.com/4/sketchy/bootstrap.min.css">
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        #messages {margin: 0; padding: 0; width: 100%;}
-        #messages li { padding: 5px 10px; }
-        #messages div:nth-child(odd) { background: #eee; width: 100%;}
-        #form { position: fixed;  bottom: 0;}
-        #messageBox {height: 600px; width: 500px; overflow: auto; margin: 0;}
+        body {
+            background-image: radial-gradient(#B7F8DB , #50A7C2);
+        }
+        
+        canvas {
+            border-radius: 10px;
+        }
+        
+        #drawBoard {
+            height: 450px;
+            width: 800px;
+            padding: 0;
+        }
+        
+        #messages {
+            overflow-y: scroll;
+            position: absolute;
+            height: 650px;
+            width: 346px;
+            background-color: rgb(180, 180, 180);
+        }
+
+        #colors {
+            margin-top: 30px;
+            margin-bottom: 10px;
+        }
+        
+        #messages > li {
+            padding-right: 20px;
+        }
+        
+        #sendButton {
+            background-color: rgb(180, 180, 180);
+        }
+        
+        #chatInputContainer {
+            margin-top: 150px;
+        }
+        
+        #welcome {
+            margin-top: 50px;
+            margin-bottom: 800px;
+        }
+        
+        #game {
+            display: none;
+        }
+        
+        #wordChoose {
+            position: absolute;
+        }
+
+        #inputChat {
+            width: 270px;
+        }
+        
+        .jumbotron {
+            background-image: radial-gradient(#e2d1c3, #fdfcfb);
+            padding-top: 32px;
+            padding-bottom: 32px;
+        }
+        
+        .color {
+            cursor: pointer;
+            padding: 10px;
+        }
+        
+        .activeState {
+            padding: 15px;
+        }
+        
+        .modal {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        
+        .modal-content {
+            opacity: 1;
+        }
     </style>
-  </head>
+    <script src="https://cdn.jsdelivr.net/npm/p5@0.10.2/lib/p5.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+</head>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/p5@0.10.2/lib/p5.js"></script>
-  <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>  
-  <script>
-    var socket = io();
+<body>
+    <!-- Willkommen Screen -->
+    <div class="container">
+        <div class="jumbotron" id="welcome">
+            <h1 class="text-center" id="heading">Willkommen bei Biscuit Drawing</h1>
+            <p class="text-center">Gib hier deinen Nickname ein</p>
+            <form id="registration">
+                <div class="form-row">
+                    <div class="col-2">
+                        <h4>Username:</h4></div>
+                    <div class="col">
+                        <input type="text" maxlength="15" class="form-control" placeholder="Gudrunde Hanelore" autocomplete="off" id="username">
+                    </div>
+                    <div class="col-2">
+                        <button class="btn btn-outline-primary" id="usernameButton">Beitreten</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="container" id="game">
+        <div>
+            <h1 class="text-center">Biscuit Drawing</h1>
+        </div>
+        <div class="container jumbotron">
+            <div class="row">
+                <div class="col">
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="card text-dark bg-light">
+                                <div class="card-header">
+                                    <h4 class="text-center" id="word">Wort</h4>
+                                </div>
+                                <div class="card-body" id="drawBoard">
+                                    <!-- Hier ist später das Canvas -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col" id="chatBox">
+                            <ul class="list-group" id="messages">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <p>Wer zeichnet hat Zugriff auf den Zeichenbereich (links) und kann auf der Zeichenfläche zeichnen. Mit der 'Entf'-Taste ist es möglich die gesamte Leinwand zu leeren.
+                                        <br> Derjenige der das Wort zuerst errät wird der neue Künstler. Alle anderen müssen weiter raten.
+                                        <br> Sobald das erste Wort 'erraten wurde' wird dadurch der erste Künstler festgelegt und das Spiel kann beginnen
+                                    </p>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="row" id="colors">
+                                <div class="col">
+                                    <span class="color badge badge-pill badge-primary activeState" id="black">Schwarz</span>
+                                </div>
+                                <div class="col">
+                                    <span class="color badge badge-pill badge-secondary" id="grey">Grau</span>
+                                </div>
+                                <div class="col">
+                                    <span class="color badge badge-pill badge-success" id="green">Grün</span>
+                                </div>
+                                <div class="col">
+                                    <span class="color badge badge-pill badge-danger" id="red">Rot</span>
+                                </div>
+                                <div class="col">
+                                    <span class="color badge badge-pill badge-warning" id="yellow">Gelb</span>
+                                </div>
+                                <div class="col">
+                                    <span class="color badge badge-pill badge-info" id="skyblue">Blau</span>
+                                </div>
+                                <div class="col">
+                                    <span class="color badge badge-pill badge-light" id="white">Radiergummi</span>
+                                </div>
+                            </div>
+                            
+                            <div class="row" id="weight">
+                                <div class="col">
+                                    <div class="row">
+                                        <div class="col-10">
+                                            <label for="weightRange">Strichstärke</label>
+                                            <input type="range" min="1" max="20" step="1" value="2" class="custom-range" id="weightRange">
+                                        </div>
+                                        <div class="col">
+                                            <label for="#previewWeight">Vorschau</label>
+                                            <svg width="40" height="40">
+                                                <circle cx="20" cy="20" r="1" stroke="black" stroke-width="0" fill="black" id="previewWeight" />
+                                            </svg>
+                                        </div>
+                                    </div>
 
-    $(function () {
-        $('form').submit(function(e){
-            e.preventDefault(); // prevents page reloading
-            if($('#m').val() != "") {
-                socket.emit('chat message', $('#m').val());
-            }
-            $('#m').val('');
-            return false;
-        });
-        socket.on('chat message', function(msg){
-            $('#messages').append($('<div>').text(msg));
-            $('#messageBox').scrollTop($('#messageBox')[0].scrollHeight);
-        });
-        socket.on('draw line', function (newLine) {
-            stroke(newLine[4]);
-            strokeWeight(newLine[5]);
-            line(newLine[0], newLine[1], newLine[2], newLine[3]);
-        });
-        socket.on('delete pic', function() {
-            clear();
-            background(230);
-        });
-        socket.on('get word', function(word) {
-            $('#word').text(word);
-        });
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-row" id="chatInputContainer">
+                                <form id="chatForm">
+                                    <div class="form-row">
+                                        <div class="col">
+                                            <input type="text" maxlength="40" class="form-control" placeholder="Chat here . . ." id="inputChat" autocomplete="off">
+                                        </div>
+                                        <div class="col">
+                                            <button class="btn btn-outline-primary" id="sendButton">Send</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Wortauswahl -->
+    <div id="modelBG">
+        <div class="modal">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Wähle ein Wort</h5>
+                    </div>
+                    <div class="modal-body d-flex justify-content-around">
+                        <button class="btn btn-outline-primary wordChooseButton" id="wordChoose1" type="button">Wort1</button>
+                        <button class="btn btn-outline-primary wordChooseButton" id="wordChoose2" type="button">Wort2</button>
+                        <button class="btn btn-outline-primary wordChooseButton" id="wordChoose3" type="button">Wort3</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- MemberListe -->
+    <div class="container" id="memberList">
+
+    </div>
+
+</body>
+
+</html>
+
+<script>
+
+    $('.color').on('click', (e) => {
+        console.log(e.target.className);
+        let buttons = $('.color');
+        buttons.removeClass('activeState')
+        $('#' + e.target.id).addClass('activeState')
+        $('circle')[0].attributes.fill.value = e.target.id;
+        console.log($('circle')[0].attributes.fill.value)
+    })
+
+    $('#weightRange').on('change', function(e) {
+        $('circle')[0].r['baseVal'].value = e.target.value / 2;
     });
 
+    /* Socket Zeugs */
+    var socket = io();
+
+    $(function() {
+        // User Management
+        $('#registration').on('submit', (e) => {
+            e.preventDefault();
+            socket.emit('add user', $('#username').val());
+            $('#welcome').hide();
+            $('#colors , #weight').hide();
+            $('#game').show();
+            return false;
+        });
+        // Chat
+        $('#chatForm').on('submit', (e) => {
+            e.preventDefault();
+            socket.emit('chat message', $('#inputChat').val());
+            $('#inputChat').val('');
+            return false;
+        })
+        socket.on('chat message', function(msg) {
+            $('#messages').append($('<li>').html(msg).addClass('list-group-item align-items-center'));
+                document.getElementById('messages').lastChild.scrollIntoView();
+        });
+        // Zeichnen (Server)
+        socket.on('draw', (draw) => {
+            stroke((draw[4]));
+            strokeWeight(draw[5]);
+            line(draw[0], draw[1], draw[2], draw[3]);
+        });
+        socket.on('del pic', () => {
+            clear();
+        });
+        // Word Management
+        $('#wordChoose1, #wordChoose2, #wordChoose3').on('click', (e) => {
+            let word = e.target.innerHTML;
+            socket.emit('new word', word);
+            $('.modal').hide();
+        }) 
+        socket.on('word update', (word) => {
+            $('#word').text(word);
+        });
+        // Rundenwechsel
+        socket.on('get player', () => {
+            $('#colors , #weight').hide();
+        });
+        socket.on('get drawer', (wordList) => {
+            console.log(wordList);
+            $('#wordChoose1').text(wordList[0]);
+            $('#wordChoose2').text(wordList[1]);
+            $('#wordChoose3').text(wordList[2]);
+            $('#colors , #weight').show();
+            $('.modal').show();
+        });
+
+    });
+
+    // Zeichenfläche (p5 Bereich)
     function setup() {
-        let canvas = createCanvas(700, 600);
-        background(230);
-        canvas.parent('drawingBoard');
+        let canvas = createCanvas(680, 450);
+        background('0')
+        canvas.parent('#drawBoard');
     }
+
     function draw() {
 
     }
+
     function mouseDragged() {
-        let color;
-        let weight;
-        Array.from(document.getElementsByName('color')).forEach(element => {
-            if(element.checked) {
-                color = element.value;
-            }
-        });
-        Array.from(document.getElementsByName('weight')).forEach(element => {
-            if(element.checked) {
-                weight = element.value;
-            }
-        });
-        let newline = [mouseX, mouseY, pmouseX, pmouseY, color, weight];
-        socket.emit('draw line', newline);
+        let color = $('.activeState')[0].id;
+        let weight = $('#weightRange')[0].value;
+        socket.emit('draw', [mouseX, mouseY, pmouseX, pmouseY, color, weight]);
     }
+
     function keyPressed() {
-        if(keyCode === 46) {
-            socket.emit('delete pic');
+        if (keyCode === 46) {
+            socket.emit('del pic');
         }
     }
-  </script>
-
-
-  <body>
-    <div id="login">
-    </div>
-        <h1 class="text-center">Biscuit Drawing</h1>    
-    <div class="row mx-4" id="game">
-        <div class="col-7 jumbotron">
-                <h3 id="word" class="text-center"></h3> 
-            <div class="row">
-                <div class="col" id="drawingBoard">
-                </div>
-                <div class="col">
-                    <form action="" class="drawerControl">
-                        <div class="form-group">
-                            <input type="radio" name="color" value="black" id="colorBlack" checked>
-                            <label for="#colorBlack">Schwarz</label>
-                        </div>
-                        <div class="form-group">
-                            <input type="radio" name="color" value="green" id="colorGreen">
-                            <label for="#colorGreen">Grün</label>
-                        </div>
-                        <div class="form-group">
-                            <input type="radio" name="color" value="yellow" id="colorYellow">
-                            <label for="#colorYellow">Geld</label>
-                        </div>
-                        <div class="form-group">
-                            <input type="radio" name="color" value="red" id="colorRed">
-                            <label for="#colorRed">Rot</label>
-                        </div>
-                        <div class="form-group">
-                            <input type="radio" name="color" value="blue" id="colorBlue">
-                            <label for="#colorBlue">Blau</label>
-                        </div>
-                    </form>                
-                </div>
-
-                <div class="col">
-                    <form action="" class="drawerControl">
-                        <div class="form-group">
-                            <input type="radio" name="weight" value="1" id="weight1" checked>
-                            <label for="#weight1">Dünn</label>
-                        </div>
-                        <div class="form-group">
-                            <input type="radio" name="weight" value="2" id="weight2">
-                            <label for="#weight2">Normal</label>
-                        </div>
-                        <div class="form-group">
-                            <input type="radio" name="weight" value="4" id="weight4">
-                            <label for="#weight4">Dick</label>
-                        </div>
-                        <div class="form-group">
-                            <input type="radio" name="weight" value="8" id="weight8">
-                            <label for="#weight8">Fett</label>
-                        </div>
-                        <div class="form-group">
-                            <input type="radio" name="weight" value="16" id="weight16">
-                            <label for="#weight16">Dei Mudda</label>
-                        </div>
-                    </form>                
-                </div>
-            </div>        
-        </div>
-        <div class="col">
-            <div class="jumbotron" id="chatBox">
-                <div class="row" id="messageBox">
-                    <div id="messages"></div>
-                </div>
-                <div class="row align-items-end">
-                    <form action="">
-                        <div class="form-row" id="chatInput">
-                            <div class="form-group">
-                                <input id="m" autocomplete="off" class="form-control"/>
-                            </div>
-                            <div class="form-group">
-                                <button class="btn btn-primary form-check">Send</button>
-                            </div>
-                        </div>
-                    </form>
-                </div> 
-            </div>
-        </div>
-    <div>
-        
-    </div>
-    
-  </body>
-</html>
+</script>

@@ -2,81 +2,81 @@ var app = require('express')();
 var http = require('http').createServer(app);
 var io = require('socket.io')(http);
 
-var user = [];
+var userSocket = [];
 var nicknames = [];
+
 var pic = [];
 var drawer;
 
-var words = ['Blume', 'Pflanze', 'Zaun', 'Auto'];
-var wordcount = words.length;
-var word;
-var wordArray;
-var placeholderWord;
+var wordCollab = ['Kletteraffe', 'Blume', 'tanzen', 'Baum', 'Wald', 'Himmel', 'Buch', 'zeichnen'];
 
-word = words[(Math.floor(Math.random() * wordcount))];
-wordArray = word.split('');
-placeholderWord = new Array(word.length).fill('_');
-
+var word = 'Kletteraffe';
+var wordArray = word.split('');
+var dummyArray = new Array(wordArray.length).fill('_');
 
 app.get('/', function(req, res){
   res.sendFile(__dirname + '/public/');
 });
 
 io.on('connection', function(socket){
-  // Check if a Drawer is set, if not make the now connected play drawer
-  if(drawer == undefined) {
-    drawer = socket.id;
-    io.to(`${socket.id}`).emit('drawer');
-  }
-  // push user in array
-  user.push(socket.id);
-  io.emit('get word', placeholderWord.join(''));
-
-    pic.forEach(element => {
-      io.emit('draw line', element);
+    console.log('user ' + socket.id + ' connected');
+    pic.forEach(line => {
+      io.to(socket.id).emit('draw', line);
+    })
+    // User-Management
+    socket.on('disconnect', () => {
+      console.log('user ' + nicknames[userSocket.indexOf(socket.id)] + ' disconnected');
+      nicknames.splice( userSocket.indexOf(socket.id), 1 );
+      userSocket.splice( userSocket.indexOf(socket.id), 1 );
     });
-    
-    console.log('a user connected');
-    // Disconnect handler
-    socket.on('disconnect', function(){
-      console.log('user disconnected');
-      user.splice( user.indexOf(socket.id), 1 );
-      if(drawer == socket.id && user != []) {
-        drawer = user[0];
-      }
-      drawer = undefined;
+    socket.on('add user', (username) => {
+      userSocket.push(socket.id);
+      nicknames.push(username);
     });
-    // Chat Message Handler
-    socket.on('chat message', function(msg){
-      console.log(msg + ' : ' + word)
-      if(msg.toLowerCase() == word.toLowerCase() ) {
-        console.log('Game End');
-        word = words[(Math.floor(Math.random() * wordcount))];
-        wordArray = word.split('');
-        placeholderWord = new Array(word.length).fill('_');
 
+    // Chat
+    socket.on('chat message', (msg) => {
+      if(msg.toLowerCase() == word.toLowerCase()) {
+        let success = nicknames[userSocket.indexOf(socket.id)] + " : <font color='green'>" + word + '</font>';
+        io.emit('chat message', success);
+        io.to(drawer).emit('get player');
         drawer = socket.id;
-        pic = [];
-        io.emit('delete pic');
-        io.to(socket.id).emit('drawer');
-
-        io.emit('get word', placeholderWord.join(''));
+        let wordList = new Array();
+        for (let i=0; i<3;i++) {
+          wordList.push(wordCollab[Math.floor(Math.random() * wordCollab.length)]);
+        }
+        io.to(socket.id).emit('get drawer', wordList);
         return;
       }
-      io.emit('chat message', msg);
+      let newMsg = "<font color='darkgrey'>" + nicknames[userSocket.indexOf(socket.id)] + ' :</font> ' + msg;
+      io.emit('chat message', newMsg);
     });
-    // Drawing Handler
-    socket.on('draw line', function(newLine) {
-      if(socket.id == drawer) {
-        pic.push(newLine);
-        io.emit('draw line', newLine);
+
+    // Zeichenfläche
+    socket.on('draw', (line) => {
+      if(drawer == socket.id) {
+        pic.push(line);
+        io.emit('draw', line);  
       }
     });
 
-    socket.on('delete pic', function() {
+    socket.on('del pic', () => {
+      if(drawer == socket.id) {
+        pic = [];
+        io.emit('del pic');  
+      }
+    });
+
+    // Wort-Management
+    socket.on('new word', (newWord) => {
+      word = newWord;
+      wordArray = word.split('');
+      dummyArray = new Array(wordArray.length).fill('_');
+      io.emit('word update', dummyArray.join(''));
       pic = [];
-      io.emit('delete pic');
+      io.emit('del pic');
     })
+
   });
 
 http.listen(3000, function(){
@@ -86,8 +86,7 @@ http.listen(3000, function(){
 
 // Running on Server
 setInterval(() => {
-  console.log('placeholder: ' + placeholderWord + ' wordArray: ' + wordArray)
-  let letterPos = Math.floor(Math.random() * word.length);
-  placeholderWord[letterPos] = wordArray[letterPos];
-  io.emit('get word', placeholderWord.join(''));
-}, 10000);
+  let randomNumber = Math.floor(Math.random() * dummyArray.length);
+  dummyArray[randomNumber] = wordArray[randomNumber];
+  io.emit('word update', dummyArray.join(''));
+}, 1000);
